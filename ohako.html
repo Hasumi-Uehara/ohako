@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ohako</title>
+  <link rel="stylesheet" href="css/ohako.css">
+</head>
+<body>
+  <h1 title="ohako"> ohako</h1>
+  <section id="tab_nav">
+
+    <ul id="tabs">
+      <li id="tab"><a href="index.html">オハコ</a></li>
+      <li id="tab"><a href="index.html">楽屋</a></li>
+    </ul>
+
+    <div>
+      <article>
+        <!-- 入力場所を作成しよう -->
+        <ul>
+          <li>
+            <label for="song_title">曲名</label><br>
+            <input type="text" id="song_title">
+          </li>
+          <li>
+            <label for="singer_name">歌手名</label><br>
+            <input type="text" id="singer_name">
+          </li>
+          <li>
+            <button id="send" class="btn btn--orange btn--radius">Save</button>
+          </li>
+        </ul>
+        <ul id="output"></ul>
+      </article>
+    </div>
+
+    <!-- データ出力場所 -->
+    <!-- <ul id="output"></ul> -->
+  </section>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  
+  <!-- 以下よりfirebaseのコード -->
+  <!-- The core Firebase JS SDK is always required and must be listed first -->
+  <script src="https://www.gstatic.com/firebasejs/8.6.1/firebase.js"></script>
+
+  <!-- TODO: Add SDKs for Firebase products that you want to use
+      https://firebase.google.com/docs/web/setup#available-libraries -->
+
+  <script>
+    // Your web app's Firebase configuration
+    var firebaseConfig = {
+
+      authDomain: "ohako-14b28.firebaseapp.com",
+      projectId: "ohako-14b28",
+      storageBucket: "ohako-14b28.appspot.com",
+      messagingSenderId: "305215540332",
+      appId: "1:305215540332:web:753d925d470d8cd22d9c49"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    // cloudfirestoreの場所を定義する処理
+    var db = firebase.firestore().collection('ohako515');
+
+    // 送信ボタンクリックでメッセージ送信
+    $('#send').on('click', function() {
+      // 送信処理の記述
+      db.add({
+        name: $('#song_title').val(),
+        text: $('#singer_name').val(),
+        time: firebase.firestore.FieldValue.serverTimestamp()  //登録日時
+      });
+      // 送信後にtextareaを空にする処理
+      $('#song_title').val('');
+      $('#singer_name').val('');
+
+      // 受信処理の記述
+      db.orderBy('time','desc').onSnapshot(function (querySnapshot) {
+        // onSnapshotで、cloud firestoreのデータ変更時に実行される。
+        // querySnapshot.docsに、cloud firestoreのデータが配列形式で入る。
+        const dataArray = [];
+        querySnapshot.docs.forEach(function (doc) {
+          const data = {
+            id: doc.id,
+            data: doc.data()
+          }
+          dataArray.push(data);
+        });
+        const tagArray = [];
+        dataArray.forEach(function (data) {
+          tagArray.push(`
+            <li id=${data.id}>
+              <p>${data.data.name}</p>
+              <p>${data.data.text}</p>
+              <p>${convertFromFirestoreTimestampToDatetime(data.data.time.seconds)}</p>
+            </li>
+          `)
+          console.log(data);
+        })
+        $('#output').html(tagArray);
+      })
+    });
+  </script>
+  <!-- ここまでFirebaseのコード -->
+
+
+  <script>
+    $(document).ready(function(){
+      //----------Select the first tab and div by default
+      $('#tab_nav > #tabs > #tab > a').eq(0).addClass( "selected" );
+      $('#tab_nav > div > article').eq(0).css('display','block');
+      //---------- This assigns an onclick event to each tab link("a" tag) and passes a parameter to the showHideTab() function
+      $('#tab_nav > #tabs').click(function(e){
+      if($(e.target).is("a")){
+      /*Handle Tab Nav*/
+      $('#tab_nav > #tabs > #tab > a').removeClass( "selected");
+      $(e.target).addClass( "selected");
+      /*Handles Tab Content*/
+      var clicked_index = $("a",this).index(e.target);
+      $('#tab_nav > div > article').css('display','none');
+      $('#tab_nav > div > article').eq(clicked_index).fadeIn();
+      }
+      $(this).blur();
+      return false;
+      });
+    });//end ready
+  </script>
+
+  <script>
+    // 日時をいい感じの形式にする関数
+    function convertFromFirestoreTimestampToDatetime(timestamp) {
+      const _d = timestamp ? new Date(timestamp * 1000) : new Date();
+      const Y = _d.getFullYear();
+      const m = (_d.getMonth() + 1).toString().padStart(2, '0');
+      const d = _d.getDate().toString().padStart(2, '0');
+      const H = _d.getHours().toString().padStart(2, '0');
+      const i = _d.getMinutes().toString().padStart(2, '0');
+      const s = _d.getSeconds().toString().padStart(2, '0');
+      return `${Y}/${m}/${d} ${H}:${i}:${s}`;
+    }
+  </script>
+
+</body>
+</html>
